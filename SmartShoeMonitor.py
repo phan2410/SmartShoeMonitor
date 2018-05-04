@@ -108,6 +108,10 @@ class Ui_MainWindow(object):
         self.labelSecond.setText(_translate("MainWindow", "s"))
         self.labelSecond_2.setText(_translate("MainWindow", "Interval"))
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+    print(*args, **kwargs)
+
 class RightFootWeightDistributionMap(QtWidgets.QWidget):
     def __init__(self, parent = None):
         QtWidgets.QWidget.__init__(self,parent)
@@ -218,25 +222,7 @@ class RightLegGaitPhase(QtWidgets.QWidget):
         else:
             self.currentPixMap = self.UnknownPixMap
         self.update()
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-
-##def Threaded(func):
-##    def func_wrapper(*args,**kwargs):
-##        Thread(target=func, args=args, kwargs=kwargs).start()
-##    return func_wrapper
-
-##def MomentaryTopLevelForNonParentTkinterMessageBox(TkMsgBox):    
-##    def msg_wrapper(*args,**kwargs):
-##        tmpTopLevelWin = Tk()
-##        tmpTopLevelWin.attributes("-topmost",True)
-##        tmpTopLevelWin.withdraw()
-##        answer = TkMsgBox(*args, **kwargs, parent=tmpTopLevelWin)
-##        tmpTopLevelWin.destroy()
-##        return answer    
-##    return msg_wrapper      
-
+     
 class SmartShoeMonitor(Ui_MainWindow):
     lock = Lock()
     def __init__(self, ctrlPipe, datPipe):
@@ -390,7 +376,6 @@ class SmartShoeMonitor(Ui_MainWindow):
             self.app.processEvents()
     def updateProcessingSpeedBar(self):
         speedQuality = float(self.processedSampleCount/self.processingSpeedBar.maximum())
-        print(speedQuality)
         self.processingSpeedBar.setValue(self.processedSampleCount)
         if self.renderDelayCounterUpperLimit > 0 and speedQuality >= 1:
             self.renderBoostDelayCounter += 1
@@ -408,6 +393,7 @@ class SmartShoeMonitor(Ui_MainWindow):
             self.dataPipe.close()
             if self.isMatLabConnected:
                 self.controlPipe.send(7)
+                time.sleep(0.1)
             self.controlPipe.send(2)
             time.sleep(0.1)
             self.controlPipe.close()            
@@ -417,7 +403,6 @@ class SmartShoeMonitor(Ui_MainWindow):
             sys.exit()
     def signalMatLabConnection(self):
         if self.isMatLabConnectionStateConfirmed:
-            print("CLICKED")
             self.isMatLabConnectionStateConfirmed = False
             try:                  
                 self.controlPipe.send(7 if self.isMatLabConnected else 9)
@@ -426,15 +411,13 @@ class SmartShoeMonitor(Ui_MainWindow):
             Thread(target=self.updateMatLabConnection).start() 
     def updateMatLabConnection(self):
         with SmartShoeMonitor.lock:
-            print("WAIT FOR RESPONSE")
+            isMatLabConnected = False
             try:
-                self.isMatLabConnected = self.controlPipe.recv()
+                isMatLabConnected = self.controlPipe.recv()
             except: pass
-            time.sleep(0.1)
-            print("GOT RESPONSE: " + str(self.isMatLabConnected))
-            if self.isMatLabConnected:
+            if isMatLabConnected:
                 self.matlabSwitch.setIcon(self.icon2)
-                tmpDataList = [[-1023]]*8 + [[-30]]*8
+                tmpDataList = [[-511]]*8 + [[-15]]*8
                 self.dataPipe.send(tmpDataList)
                 self.dataPipe.send(tmpDataList)
                 self.dataPipe.send([1])
@@ -445,9 +428,10 @@ class SmartShoeMonitor(Ui_MainWindow):
                 tmpDataList = [[-1023]]*8 + [[-30]]*8
                 self.dataPipe.send(tmpDataList)
                 self.dataPipe.send(tmpDataList)
+            self.isMatLabConnected = isMatLabConnected
             self.app.processEvents()
             time.sleep(0.1)
-            self.matlabSwitch.setText("MATLAB")
+            self.matlabSwitch.setText("MATLAB")            
             self.isMatLabConnectionStateConfirmed = True
         
                 
@@ -491,9 +475,7 @@ class MatLabCommunication(Process):
                         self.currentMatEng.quit()
                 except: pass
                 self.isMatLabConnectionStateRequestNotChecked = True
-                eprint("DONE 1 HELLO: " + str(booleanValue))
-            eprint("HELLO")
-            requestedMatLabState = True
+            requestedMatLabState = False
             try:
                 requestedMatLabState = self.controlPipe.recv()
             except EOFError:
@@ -501,7 +483,6 @@ class MatLabCommunication(Process):
             except:
                 self.isMatLabConnectionStateRequestNotChecked = True
                 return
-            print("GOT CMD: " + str(requestedMatLabState))
             if requestedMatLabState == 9 and not self.isMatLabConnected:
                 sharedMatLabSessions = matlab.engine.find_matlab()
                 isAvailableSharedMatLabSessionAccepted = False
@@ -518,19 +499,15 @@ class MatLabCommunication(Process):
                             self.currentMatEng = matlab.engine.connect_matlab(sharedMatLabSessions[-1])
                 if not isAvailableSharedMatLabSessionAccepted:
                     try:
-                        eprint("ENTER CHECK CALL")
                         Popen("matlab -r \"matlab.engine.shareEngine(\'SmartShoeMonitor\')\"")
-                        print("PASS CHECK CALL")
                     except:
-                        print("Failed to open MatLab !")
+                        eprint("Failed to open MatLab !")
                         replyMatLabConnectionState(False)
                         return
                     while 'SmartShoeMonitor' not in sharedMatLabSessions:
                         time.sleep(2)
-                        print("FINDING SHARED MATLAB")
                         sharedMatLabSessions = matlab.engine.find_matlab()                    
                     self.currentMatEng = matlab.engine.connect_matlab('SmartShoeMonitor')
-                    print("Seem Ok")
                 time.sleep(0.1)
                 try:
                     self.currentMatEng.cd(os.path.dirname(os.path.abspath(__file__)))
@@ -538,11 +515,10 @@ class MatLabCommunication(Process):
                     eprint("Failed to establish MatLab communication !")
                     replyMatLabConnectionState(False)
                     return
-                print("Seem Ok 2")
                 replyMatLabConnectionState(True)            
             elif requestedMatLabState == 7 and self.isMatLabConnected:
                 replyMatLabConnectionState(False)
-            if requestedMatLabState == 2:
+            elif requestedMatLabState == 2:
                 self.dataPipe.close()
                 self.controlPipe.close()
                 self.selfTerminationNotRequested = False
@@ -559,7 +535,7 @@ if __name__ == "__main__":
         try:
             f = open('data/pyDictSensor' + str(i) + '.txt','r')
         except:
-            print('Data File Not Found data/pyDictSensor' + str(i) + '.txt !')
+            eprint('Data File Not Found data/pyDictSensor' + str(i) + '.txt !')
             sys.exit()
         aDict = []
         try:
@@ -574,12 +550,13 @@ if __name__ == "__main__":
                 print('Missing Data In File data/pyDictSensor' + str(i) + '.txt !')
                 sys.exit()
         except:
-            print('Invalid Data File data/pyDictSensor' + str(i) + '.txt !')
+            eprint('Invalid Data File data/pyDictSensor' + str(i) + '.txt !')
             sys.exit()
         f.close()
         rawDataToWeightDicts.append(aDict)
-        print('\tSuccessfully Read data/pyDictSensor' + str(i) + '.txt !')           
-                
+        print('\tRead data/pyDictSensor' + str(i) + '.txt !')           
+
+    print('\n')      
     childControlPipe, parentControlPipe = Pipe(True)
     childDataPipe, parentDataPipe = Pipe(False)    
     MatLabCommunication(childControlPipe,childDataPipe).start()
