@@ -1,0 +1,1 @@
+START /B/REALTIME python SmartShoeMonitor.py

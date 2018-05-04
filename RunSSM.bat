@@ -1,0 +1,1 @@
+CMD /K "RealTimeSmartShoeMonitor.bat"
