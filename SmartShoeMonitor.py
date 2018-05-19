@@ -345,7 +345,7 @@ class SmartShoeMonitor(Ui_MainWindow):
                 self.weightAxYData[:,:-1] = self.weightAxYData[:,1:]
                 for i in range(0,8,1):
                     tmpInt = rawDataPacket[i*2]*43 + rawDataPacket[i*2+1] - 2112
-                    if tmpInt > 1023:
+                    if tmpInt < 0 or tmpInt > 1023:
                         tmpInt = 0
                     rawDataIntArr[i,0] = tmpInt
                     WeightDataIntArr[i,0] = rawDataToWeightDicts[i][tmpInt]
