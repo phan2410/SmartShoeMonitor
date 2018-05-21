@@ -233,7 +233,7 @@ class SmartShoeMonitor(Ui_MainWindow):
 
         self.WeightDistributionGraph.setMenuEnabled(False)
         self.WeightDistributionGraph.showGrid(x=True,y=True)
-        self.WeightDistributionGraph.setLabel('left','Weight','N')
+        self.WeightDistributionGraph.setLabel('left','Pressure','kPa')
         self.WeightDistributionGraph.setLabel('bottom','Time','s')
         self.weightA0 = self.WeightDistributionGraph.plot(pen=(153,51,102))
         self.weightA1 = self.WeightDistributionGraph.plot(pen=(255,0,0))
@@ -530,6 +530,7 @@ if __name__ == "__main__":
     print("\n\n\n==================SMART SHOE MONITOR=========================\n")
 
     print("Importing Data Files ...")
+    constantScale = 157.19
     for i in range(1,9,1):
         f = None
         try:
@@ -542,7 +543,7 @@ if __name__ == "__main__":
             for line in f:
                 lineParts = line.strip().split('\t')
                 if len(lineParts) > 1:
-                    tmpFloat = float(lineParts[1])*10
+                    tmpFloat = float(lineParts[1])*constantScale
                     if tmpFloat > maxSensibleWeight:
                         maxSensibleWeight = tmpFloat
                     aDict.append(tmpFloat)
