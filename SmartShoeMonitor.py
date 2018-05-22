@@ -22,12 +22,12 @@ class Ui_MainWindow(object):
         MainWindow.setWindowIcon(icon)
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
-        self.WeightDistributionMap = RightFootWeightDistributionMap(self.centralWidget)
-        self.WeightDistributionMap.setGeometry(QtCore.QRect(10, 10, 200, 470))
-        self.WeightDistributionMap.setObjectName("WeightDistributionMap")
-        self.WeightDistributionGraph = PlotWidget(self.centralWidget)
-        self.WeightDistributionGraph.setGeometry(QtCore.QRect(220, 10, 794, 310))
-        self.WeightDistributionGraph.setObjectName("WeightDistributionGraph")
+        self.PressureDistributionMap = RightFootPressureDistributionMap(self.centralWidget)
+        self.PressureDistributionMap.setGeometry(QtCore.QRect(10, 10, 200, 470))
+        self.PressureDistributionMap.setObjectName("PressureDistributionMap")
+        self.PressureDistributionGraph = PlotWidget(self.centralWidget)
+        self.PressureDistributionGraph.setGeometry(QtCore.QRect(220, 10, 794, 310))
+        self.PressureDistributionGraph.setObjectName("PressureDistributionGraph")
         self.currentGaitPhase = RightLegGaitPhase(self.centralWidget)
         self.currentGaitPhase.setGeometry(QtCore.QRect(10, 490, 200, 150))
         self.currentGaitPhase.setObjectName("currentGaitPhase")
@@ -112,10 +112,10 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     print(*args, **kwargs)
 
-class RightFootWeightDistributionMap(QtWidgets.QWidget):
+class RightFootPressureDistributionMap(QtWidgets.QWidget):
     def __init__(self, parent = None):
         QtWidgets.QWidget.__init__(self,parent)
-        self.backgroundPixMap = QtGui.QPixmap('icon/WeightDistributionMapBackground.png','PNG').scaled(200, 470)
+        self.backgroundPixMap = QtGui.QPixmap('icon/PressureDistributionMapBackground.png','PNG').scaled(200, 470)
         self.painter = QtGui.QPainter(self.backgroundPixMap)
         self.brush0 = QtGui.QBrush(QtGui.QColor(255,255,255,255))
         self.brush1 = QtGui.QBrush(QtGui.QColor(255,255,255,255))
@@ -125,8 +125,8 @@ class RightFootWeightDistributionMap(QtWidgets.QWidget):
         self.brush5 = QtGui.QBrush(QtGui.QColor(255,255,255,255))
         self.brush6 = QtGui.QBrush(QtGui.QColor(255,255,255,255))
         self.brush7 = QtGui.QBrush(QtGui.QColor(255,255,255,255))
-        global maxSensibleWeight
-        self.ColorTemperatureToWeightRatio = float(1023/maxSensibleWeight)        
+        global maxSensiblePressure
+        self.ColorTemperatureToPressureRatio = float(1023/maxSensiblePressure)        
     def paintEvent(self, event):
         self.painter.setBrush(self.brush0)
         self.painter.drawEllipse(24,47,30,30)
@@ -145,8 +145,8 @@ class RightFootWeightDistributionMap(QtWidgets.QWidget):
         self.painter.setBrush(self.brush7)
         self.painter.drawEllipse(85,400,30,30)
         QtGui.QPainter(self).drawPixmap(0,0,self.backgroundPixMap)        
-    def GenBrushFromWeightData(self,WeightData):
-        colorTemp = int(WeightData*self.ColorTemperatureToWeightRatio)
+    def GenBrushFromPressureData(self,PressureData):
+        colorTemp = int(PressureData*self.ColorTemperatureToPressureRatio)
         Red = 0
         Green = 0
         Blue = 0
@@ -167,15 +167,15 @@ class RightFootWeightDistributionMap(QtWidgets.QWidget):
             Green = 1023 - colorTemp
             Red = 255
         return QtGui.QBrush(QtGui.QColor(Red,Green,Blue,255))
-    def updateColor(self,WeightDataIntArr):
-        self.brush0 = self.GenBrushFromWeightData(WeightDataIntArr[0])
-        self.brush1 = self.GenBrushFromWeightData(WeightDataIntArr[1])
-        self.brush2 = self.GenBrushFromWeightData(WeightDataIntArr[2])
-        self.brush3 = self.GenBrushFromWeightData(WeightDataIntArr[3])
-        self.brush4 = self.GenBrushFromWeightData(WeightDataIntArr[4])
-        self.brush5 = self.GenBrushFromWeightData(WeightDataIntArr[5])
-        self.brush6 = self.GenBrushFromWeightData(WeightDataIntArr[6])
-        self.brush7 = self.GenBrushFromWeightData(WeightDataIntArr[7])
+    def updateColor(self,PressureDataIntArr):
+        self.brush0 = self.GenBrushFromPressureData(PressureDataIntArr[0])
+        self.brush1 = self.GenBrushFromPressureData(PressureDataIntArr[1])
+        self.brush2 = self.GenBrushFromPressureData(PressureDataIntArr[2])
+        self.brush3 = self.GenBrushFromPressureData(PressureDataIntArr[3])
+        self.brush4 = self.GenBrushFromPressureData(PressureDataIntArr[4])
+        self.brush5 = self.GenBrushFromPressureData(PressureDataIntArr[5])
+        self.brush6 = self.GenBrushFromPressureData(PressureDataIntArr[6])
+        self.brush7 = self.GenBrushFromPressureData(PressureDataIntArr[7])
         self.update()
 
 class RightLegGaitPhase(QtWidgets.QWidget):
@@ -190,12 +190,12 @@ class RightLegGaitPhase(QtWidgets.QWidget):
         self.currentPixMap = self.UnknownPixMap
     def paintEvent(self, event):
         QtGui.QPainter(self).drawPixmap(0,0,self.currentPixMap)
-    def updateGait(self,isOfStancePhases,WeightDataIntArr):
+    def updateGait(self,isOfStancePhases,PressureDataIntArr):
         if isOfStancePhases:
-            sumHindFoot = sum(WeightDataIntArr[6:8])
-            midFoot = WeightDataIntArr[5]
-            sumForeFoot = sum(WeightDataIntArr[1:5])
-            greatToe = WeightDataIntArr[0]
+            sumHindFoot = sum(PressureDataIntArr[6:8])
+            midFoot = PressureDataIntArr[5]
+            sumForeFoot = sum(PressureDataIntArr[1:5])
+            greatToe = PressureDataIntArr[0]
             isHindFoot = sumHindFoot
             if sumHindFoot > 3:                
                 if midFoot > 3:
@@ -231,19 +231,19 @@ class SmartShoeMonitor(Ui_MainWindow):
         self.MainWindow = QtWidgets.QMainWindow()
         self.setupUi(self.MainWindow)
 
-        self.WeightDistributionGraph.setMenuEnabled(False)
-        self.WeightDistributionGraph.showGrid(x=True,y=True)
-        self.WeightDistributionGraph.setLabel('left','Pressure','kPa')
-        self.WeightDistributionGraph.setLabel('bottom','Time','s')
-        self.weightA0 = self.WeightDistributionGraph.plot(pen=(153,51,102))
-        self.weightA1 = self.WeightDistributionGraph.plot(pen=(255,0,0))
-        self.weightA2 = self.WeightDistributionGraph.plot(pen=(255,102,0))
-        self.weightA3 = self.WeightDistributionGraph.plot(pen=(255,255,0))
-        self.weightA4 = self.WeightDistributionGraph.plot(pen=(0,255,0))
-        self.weightA5 = self.WeightDistributionGraph.plot(pen=(0,255,255))
-        self.weightA6 = self.WeightDistributionGraph.plot(pen=(255,0,255))
-        self.weightA7 = self.WeightDistributionGraph.plot(pen=(255,255,255))
-        self.weightAxYData = None 
+        self.PressureDistributionGraph.setMenuEnabled(False)
+        self.PressureDistributionGraph.showGrid(x=True,y=True)
+        self.PressureDistributionGraph.setLabel('left','Pressure','kPa')
+        self.PressureDistributionGraph.setLabel('bottom','Time','s')
+        self.PressureA0 = self.PressureDistributionGraph.plot(pen=(153,51,102))
+        self.PressureA1 = self.PressureDistributionGraph.plot(pen=(255,0,0))
+        self.PressureA2 = self.PressureDistributionGraph.plot(pen=(255,102,0))
+        self.PressureA3 = self.PressureDistributionGraph.plot(pen=(255,255,0))
+        self.PressureA4 = self.PressureDistributionGraph.plot(pen=(0,255,0))
+        self.PressureA5 = self.PressureDistributionGraph.plot(pen=(0,255,255))
+        self.PressureA6 = self.PressureDistributionGraph.plot(pen=(255,0,255))
+        self.PressureA7 = self.PressureDistributionGraph.plot(pen=(255,255,255))
+        self.PressureAxYData = None 
         
         self.rawDistributionGraph.setMenuEnabled(False)
         self.rawDistributionGraph.showGrid(x=True,y=True)
@@ -312,15 +312,15 @@ class SmartShoeMonitor(Ui_MainWindow):
         self.renderDelayCounterUpperLimit = int(interval)
         self.x = np.linspace(-interval,0.0,self.bufferSize)
         self.rawAxYData = np.zeros([8,self.bufferSize], dtype = int)
-        self.weightAxYData = np.zeros([8,self.bufferSize], dtype = float)
+        self.PressureAxYData = np.zeros([8,self.bufferSize], dtype = float)
     def updateGraphics(self):
-        global rawDataToWeightDicts
+        global rawDataToPressureDicts
         print("Smart Shoe Monitor is about to run !")        
         self.timer.timeout.disconnect(self.updateGraphics)        
         self.speedCheckTimer.start()
         rawDataPacket = None
         rawDataIntArr = np.zeros([8,1], dtype = int)
-        WeightDataIntArr = np.zeros([8,1], dtype = float)
+        PressureDataIntArr = np.zeros([8,1], dtype = float)
         renderDelayCounter = 0
         while True:
             try:
@@ -342,17 +342,17 @@ class SmartShoeMonitor(Ui_MainWindow):
                 renderDelayCounter += 1
                 rawDataPacket = rawDataPacket[1:]                    
                 self.rawAxYData[:,:-1] = self.rawAxYData[:,1:]
-                self.weightAxYData[:,:-1] = self.weightAxYData[:,1:]
+                self.PressureAxYData[:,:-1] = self.PressureAxYData[:,1:]
                 for i in range(0,8,1):
                     tmpInt = rawDataPacket[i*2]*43 + rawDataPacket[i*2+1] - 2112
                     if tmpInt < 0 or tmpInt > 1023:
                         tmpInt = 0
                     rawDataIntArr[i,0] = tmpInt
-                    WeightDataIntArr[i,0] = rawDataToWeightDicts[i][tmpInt]
+                    PressureDataIntArr[i,0] = rawDataToPressureDicts[i][tmpInt]
                 self.rawAxYData[:,-1] = rawDataIntArr[:,0]
-                self.weightAxYData[:,-1] = WeightDataIntArr[:,0]
+                self.PressureAxYData[:,-1] = PressureDataIntArr[:,0]
                 if self.isMatLabConnected:
-                    self.dataPipe.send(rawDataIntArr.tolist()+WeightDataIntArr.tolist())
+                    self.dataPipe.send(rawDataIntArr.tolist()+PressureDataIntArr.tolist())
                 if renderDelayCounter >= self.renderDelayCounterUpperLimit:
                     renderDelayCounter = 0
                     self.rawA0.setData(self.x,self.rawAxYData[0])
@@ -363,16 +363,16 @@ class SmartShoeMonitor(Ui_MainWindow):
                     self.rawA5.setData(self.x,self.rawAxYData[5])
                     self.rawA6.setData(self.x,self.rawAxYData[6])
                     self.rawA7.setData(self.x,self.rawAxYData[7])
-                    self.weightA0.setData(self.x,self.weightAxYData[0])
-                    self.weightA1.setData(self.x,self.weightAxYData[1])
-                    self.weightA2.setData(self.x,self.weightAxYData[2])
-                    self.weightA3.setData(self.x,self.weightAxYData[3])
-                    self.weightA4.setData(self.x,self.weightAxYData[4])
-                    self.weightA5.setData(self.x,self.weightAxYData[5])
-                    self.weightA6.setData(self.x,self.weightAxYData[6])
-                    self.weightA7.setData(self.x,self.weightAxYData[7])
-                    self.WeightDistributionMap.updateColor(WeightDataIntArr)
-                    self.currentGaitPhase.updateGait(sum(rawDataIntArr)>80,WeightDataIntArr)
+                    self.PressureA0.setData(self.x,self.PressureAxYData[0])
+                    self.PressureA1.setData(self.x,self.PressureAxYData[1])
+                    self.PressureA2.setData(self.x,self.PressureAxYData[2])
+                    self.PressureA3.setData(self.x,self.PressureAxYData[3])
+                    self.PressureA4.setData(self.x,self.PressureAxYData[4])
+                    self.PressureA5.setData(self.x,self.PressureAxYData[5])
+                    self.PressureA6.setData(self.x,self.PressureAxYData[6])
+                    self.PressureA7.setData(self.x,self.PressureAxYData[7])
+                    self.PressureDistributionMap.updateColor(PressureDataIntArr)
+                    self.currentGaitPhase.updateGait(sum(rawDataIntArr)>80,PressureDataIntArr)
             self.app.processEvents()
     def updateProcessingSpeedBar(self):
         speedQuality = float(self.processedSampleCount/self.processingSpeedBar.maximum())
@@ -523,8 +523,8 @@ class MatLabCommunication(Process):
                 self.controlPipe.close()
                 self.selfTerminationNotRequested = False
 
-rawDataToWeightDicts = []
-maxSensibleWeight = 0
+rawDataToPressureDicts = []
+maxSensiblePressure = 0
                 
 if __name__ == "__main__":
     print("\n\n\n==================SMART SHOE MONITOR=========================\n")
@@ -544,8 +544,8 @@ if __name__ == "__main__":
                 lineParts = line.strip().split('\t')
                 if len(lineParts) > 1:
                     tmpFloat = float(lineParts[1])*constantScale
-                    if tmpFloat > maxSensibleWeight:
-                        maxSensibleWeight = tmpFloat
+                    if tmpFloat > maxSensiblePressure:
+                        maxSensiblePressure = tmpFloat
                     aDict.append(tmpFloat)
             if len(aDict) != 1024:
                 print('Missing Data In File data/pyDictSensor' + str(i) + '.txt !')
@@ -554,7 +554,7 @@ if __name__ == "__main__":
             eprint('Invalid Data File data/pyDictSensor' + str(i) + '.txt !')
             sys.exit()
         f.close()
-        rawDataToWeightDicts.append(aDict)
+        rawDataToPressureDicts.append(aDict)
         print('\tRead data/pyDictSensor' + str(i) + '.txt !')           
 
     print('\n')      
