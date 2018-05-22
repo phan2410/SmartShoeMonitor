@@ -319,9 +319,11 @@ class SmartShoeMonitor(Ui_MainWindow):
         self.timer.timeout.disconnect(self.updateGraphics)        
         self.speedCheckTimer.start()
         rawDataPacket = None
-        rawDataIntArr = np.zeros([8,1], dtype = int)
-        PressureDataIntArr = np.zeros([8,1], dtype = float)
+        rawDataIntArr = np.zeros(8, dtype = int)
+        PressureDataIntArr = np.zeros(8, dtype = float)
         renderDelayCounter = 0
+        isPressureOnMeanCurve = np.ones(8, dtype = bool)
+        PressureCurveChangeCounters = np.zeros(8, dtype = int)
         while True:
             try:
                 rawDataPacket = self.clientConnection.recv(17)
@@ -345,12 +347,37 @@ class SmartShoeMonitor(Ui_MainWindow):
                 self.PressureAxYData[:,:-1] = self.PressureAxYData[:,1:]
                 for i in range(0,8,1):
                     tmpInt = rawDataPacket[i*2]*43 + rawDataPacket[i*2+1] - 2112
+                    tmpInt1 = rawDataIntArr[i]
                     if tmpInt < 0 or tmpInt > 1023:
                         tmpInt = 0
-                    rawDataIntArr[i,0] = tmpInt
-                    PressureDataIntArr[i,0] = rawDataToPressureDicts[i][tmpInt]
-                self.rawAxYData[:,-1] = rawDataIntArr[:,0]
-                self.PressureAxYData[:,-1] = PressureDataIntArr[:,0]
+                    tmpInt2 = tmpInt - tmpInt1
+                    rawDataIntArr[i] = tmpInt
+                    if isPressureOnMeanCurve[i]:
+                        if tmpInt2 < 0 and abs(tmpInt2) > rawDataToPressureFromLoadCurveRMSEOnADCDicts[i,tmpInt1]:
+                            PressureCurveChangeCounters[i] += 1
+                            if PressureCurveChangeCounters[i] > 3:
+                                isPressureOnMeanCurve[i] = False
+                                PressureDataIntArr[i] = rawDataToPressureFromUnloadCurveMeanDicts[i,tmpInt]
+                                PressureCurveChangeCounters[i] = 0
+                            else:
+                                PressureDataIntArr[i] = rawDataToPressureFromLoadCurveMeanDicts[i,tmpInt]
+                        else:                            
+                            PressureDataIntArr[i] = rawDataToPressureFromLoadCurveMeanDicts[i,tmpInt]
+                            PressureCurveChangeCounters[i] = 0                            
+                    else:
+                        if tmpInt2 > 0 and abs(tmpInt2) > rawDataToPressureFromUnloadCurveRMSEOnADCDicts[i,tmpInt1]:
+                            PressureCurveChangeCounters[i] += 1
+                            if PressureCurveChangeCounters[i] > 3:
+                                isPressureOnMeanCurve[i] = True
+                                PressureDataIntArr[i] = rawDataToPressureFromLoadCurveMeanDicts[i,tmpInt]
+                                PressureCurveChangeCounters[i] = 0
+                            else:
+                                PressureDataIntArr[i] = rawDataToPressureFromUnloadCurveMeanDicts[i,tmpInt]
+                        else:                            
+                            PressureDataIntArr[i] = rawDataToPressureFromUnloadCurveMeanDicts[i,tmpInt]
+                            PressureCurveChangeCounters[i] = 0           
+                self.rawAxYData[:,-1] = rawDataIntArr
+                self.PressureAxYData[:,-1] = PressureDataIntArr
                 if self.isMatLabConnected:
                     self.dataPipe.send(rawDataIntArr.tolist()+PressureDataIntArr.tolist())
                 if renderDelayCounter >= self.renderDelayCounterUpperLimit:
@@ -523,41 +550,47 @@ class MatLabCommunication(Process):
                 self.controlPipe.close()
                 self.selfTerminationNotRequested = False
 
-rawDataToPressureDicts = []
+rawDataToPressureFromLoadCurveMeanDicts = np.zeros([8,1024],dtype=int)
+rawDataToPressureFromLoadCurveRMSEOnADCDicts = np.zeros([8,1024],dtype=int)
+rawDataToPressureFromUnloadCurveMeanDicts = np.zeros([8,1024],dtype=int)
+rawDataToPressureFromUnloadCurveRMSEOnADCDicts = np.zeros([8,1024],dtype=int)
 maxSensiblePressure = 0
                 
 if __name__ == "__main__":
     print("\n\n\n==================SMART SHOE MONITOR=========================\n")
-
-    print("Importing Data Files ...")
-    constantScale = 157.19
-    for i in range(1,9,1):
-        f = None
-        try:
-            f = open('data/pyDictSensor' + str(i) + '.txt','r')
-        except:
-            eprint('Data File Not Found data/pyDictSensor' + str(i) + '.txt !')
-            sys.exit()
-        aDict = []
-        try:
-            for line in f:
-                lineParts = line.strip().split('\t')
-                if len(lineParts) > 1:
-                    tmpFloat = float(lineParts[1])*constantScale
-                    if tmpFloat > maxSensiblePressure:
+    
+    for DataCategory in ['LoadCurveMean','LoadCurveRMSEOnADC','UnloadCurveMean','UnloadCurveRMSEOnADC']:
+        for i in range(1,9,1):        
+            f = None
+            currentFileName = 'data/pyDictSen' + str(i) + DataCategory + '.sss'
+            try:
+                f = open(currentFileName,'r')
+            except:
+                eprint('Data File Not Found ' + currentFileName)
+                sys.exit()
+            aDict = []
+            try:
+                for line in f:                    
+                    tmpFloat = float(line.strip())
+                    if DataCategory in ['LoadCurveMean','UnloadCurveMean'] and tmpFloat > maxSensiblePressure:
                         maxSensiblePressure = tmpFloat
                     aDict.append(tmpFloat)
-            if len(aDict) != 1024:
-                print('Missing Data In File data/pyDictSensor' + str(i) + '.txt !')
+                if len(aDict) != 1024:
+                    eprint('Missing Data In File ' + currentFileName)
+                    sys.exit()
+            except:
+                eprint('Invalid Data File ' + currentFileName)
                 sys.exit()
-        except:
-            eprint('Invalid Data File data/pyDictSensor' + str(i) + '.txt !')
-            sys.exit()
-        f.close()
-        rawDataToPressureDicts.append(aDict)
-        print('\tRead data/pyDictSensor' + str(i) + '.txt !')           
-
-    print('\n')      
+            f.close()
+            if DataCategory == 'LoadCurveMean':
+                rawDataToPressureFromLoadCurveMeanDicts[i-1] = aDict
+            elif DataCategory == 'LoadCurveRMSEOnADC':
+                rawDataToPressureFromLoadCurveRMSEOnADCDicts[i-1] = aDict
+            elif DataCategory == 'UnloadCurveMean':
+                rawDataToPressureFromUnloadCurveMeanDicts[i-1] = aDict
+            else:
+                rawDataToPressureFromUnloadCurveRMSEOnADCDicts[i-1] = aDict
+      
     childControlPipe, parentControlPipe = Pipe(True)
     childDataPipe, parentDataPipe = Pipe(False)    
     MatLabCommunication(childControlPipe,childDataPipe).start()
