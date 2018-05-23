@@ -190,16 +190,16 @@ class RightLegGaitPhase(QtWidgets.QWidget):
         self.currentPixMap = self.UnknownPixMap
     def paintEvent(self, event):
         QtGui.QPainter(self).drawPixmap(0,0,self.currentPixMap)
-    def updateGait(self,isOfStancePhases,PressureDataIntArr):
-        if isOfStancePhases:
-            sumHindFoot = sum(PressureDataIntArr[6:8])
+    def updateGait(self,PressureDataIntArr):
+        SumPressureData = np.sum(PressureDataIntArr)
+        if SumPressureData > 99:
+            sumHindFoot = np.sum(PressureDataIntArr[6:8])
             midFoot = PressureDataIntArr[5]
-            sumForeFoot = sum(PressureDataIntArr[1:5])
+            sumForeFoot = np.sum(PressureDataIntArr[1:5])
             greatToe = PressureDataIntArr[0]
-            isHindFoot = sumHindFoot
-            if sumHindFoot > 3:                
-                if midFoot > 3:
-                    if sumForeFoot >= 1:
+            if sumHindFoot > 20:                
+                if midFoot > 18:
+                    if sumForeFoot >= 27:
                         if sumHindFoot > sumForeFoot:
                             self.currentPixMap = self.LoadingResponsePixMap
                         else:
@@ -209,8 +209,8 @@ class RightLegGaitPhase(QtWidgets.QWidget):
                 else:
                     self.currentPixMap = self.InitialContactPixMap
             else:
-                if midFoot > 3:
-                    if sumForeFoot >= 1:
+                if midFoot > 18:
+                    if sumForeFoot >= 27:
                         self.currentPixMap = self.TerminalStancePixMap
                     else:
                         self.currentPixMap = self.UnknownPixMap
@@ -399,7 +399,7 @@ class SmartShoeMonitor(Ui_MainWindow):
                     self.PressureA6.setData(self.x,self.PressureAxYData[6])
                     self.PressureA7.setData(self.x,self.PressureAxYData[7])
                     self.PressureDistributionMap.updateColor(PressureDataIntArr)
-                    self.currentGaitPhase.updateGait(sum(rawDataIntArr)>80,PressureDataIntArr)
+                    self.currentGaitPhase.updateGait(PressureDataIntArr)
             self.app.processEvents()
     def updateProcessingSpeedBar(self):
         speedQuality = float(self.processedSampleCount/self.processingSpeedBar.maximum())
