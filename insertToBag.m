@@ -12,17 +12,17 @@ function returnCode = insertToBag(dblArr16x1)
     DataBag(:,end) = int16(dblArr16x1(1:8));
     assignin('base','DataBag',DataBag);
     clear DataBag;
-    %insertToWeightBag
-    if ismember('WeightBag',evalin('base','who'))
-        WeightBag = evalin('base', 'WeightBag');
-        WeightBag = circshift(WeightBag,[0 -1]);
-        if sum(WeightBag(:,1)) ~= 0
-            WeightBag = [zeros(8,5000) WeightBag];
+    %insertToPressureBag
+    if ismember('PressureBag',evalin('base','who'))
+        PressureBag = evalin('base', 'PressureBag');
+        PressureBag = circshift(PressureBag,[0 -1]);
+        if sum(PressureBag(:,1)) ~= 0
+            PressureBag = [zeros(8,5000) PressureBag];
         end
     else
-        WeightBag = double(zeros(8,5000));        
+        PressureBag = double(zeros(8,5000));        
     end
-    WeightBag(:,end) = dblArr16x1(9:16);
-    assignin('base','WeightBag',WeightBag);
+    PressureBag(:,end) = dblArr16x1(9:16);
+    assignin('base','PressureBag',PressureBag);
     returnCode = true;
 end
