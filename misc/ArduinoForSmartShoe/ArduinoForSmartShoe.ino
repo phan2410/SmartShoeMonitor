@@ -16,7 +16,7 @@ void setup() {
   //Initialize ADC 
   ADMUX = 0;
   ADCSRB &= 0b11111000;//ADC Free Running Mode
-  ADCSRA &= 0xFC;
+  ADCSRA &= 0xF8;
   ADCSRA |= 0b10000100;//ADEN|XTAL/16
   //Initialize TMR1
   TCCR1A &= 0b00001100;
